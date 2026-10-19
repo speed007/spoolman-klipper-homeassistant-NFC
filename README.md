@@ -174,6 +174,7 @@ NOTICE                third-party material and safety notes
 - **String/int trap.** Automation `variables` render as **strings**, so every comparison in the package coerces with `| int(...)`. Drop that and `"0" == 0` silently evaluates false.
 - **Rename gotcha.** The firmware's fallback-hotspot secret was originally named after an unrelated device; it is now `ap_password`. Update your `secrets.yaml` to match.
 - **Placeholders.** Hosts and example tag UIDs in `ha_nfc_spool.yaml` are placeholders — replace them before use.
+- **Ad-blockers can break Spoolman live updates.** Fluidd (and Mainsail) fetch live spool data over a **WebSocket** straight from the browser to Spoolman. uBlock Origin and similar extensions can block the upgrade while still letting ordinary HTTP through — so the API looks fine but spool weights stop refreshing. Disable the blocker for the Fluidd origin, or add `@@||<spoolman-host>^` to its filter list.
 
 ## Contributing
 
