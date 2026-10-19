@@ -37,6 +37,16 @@ Three ideas do the heavy lifting:
 - **`slot`** (a second custom field) holds the dryer slot when a spool is loaded, and is empty when it is in storage.
 - **`location`** (Spoolman's built-in field) is the **storage bag**, set once by hand and never touched by a tap.
 
+## Screenshots
+
+Fluidd's **Spool Selection** dialog, populated straight from Spoolman:
+
+![Fluidd Spool Selection dialog](docs/images/fluidd/spool-selection.png)
+
+Spool cards showing the Spoolman image and the loaded lane:
+
+![Spool cards](docs/images/fluidd/spool-cards.png)
+
 ## Hardware
 
 | Part | Detail |

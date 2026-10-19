@@ -25,6 +25,13 @@ Suggested shots (in rough priority order):
 | _to add_ | The dryer-slot / tag map (`input_text.spool_slot_tags`) |
 | _to add_ | An automation trace for `nfc_spool_tag_scanned` |
 
+## Spoolman in Fluidd
+
+| File | Shows |
+|---|---|
+| `fluidd/spool-selection.png` | Fluidd's **Spool Selection** dialog, populated straight from Spoolman |
+| `fluidd/spool-cards.png` | Spool cards with Spoolman images and the loaded lane |
+
 ## Tagging demo
 
 | File | Shows |
