@@ -23,9 +23,15 @@ Suggested shots (in rough priority order):
 
 | File | Shows |
 |---|---|
-| _to add_ | The Spoolman spool page with `card_uids` and `slot` set |
-| _to add_ | The dryer-slot / tag map (`input_text.spool_slot_tags`) |
-| _to add_ | An automation trace for `nfc_spool_tag_scanned` |
+| `home-assistant/tag-map.png` | The tag map — `input_text.spool_slot_tags`, the UID → action JSON |
+| `home-assistant/slot-helper.png` | The armed helper — `input_select.spool_slot` (`None` / `1`–`4` / `Unload` / `SV08`) |
+| `home-assistant/automation-trace.png` | A trace of `nfc_spool_tag_scanned`, with the resolved variables |
+
+## Spoolman
+
+| File | Shows |
+|---|---|
+| `spoolman/spool.png` | A spool's page — `location` (bag), `slot` (dryer) and `card_uids` (tag) |
 
 ## Spoolman in Fluidd
 

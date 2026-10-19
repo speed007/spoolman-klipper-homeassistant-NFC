@@ -39,6 +39,24 @@ Three ideas do the heavy lifting:
 
 ## Screenshots
 
+### Home Assistant
+
+The **tag map** — tag UID → action, held in an `input_text` helper:
+
+![The tag map](docs/images/home-assistant/tag-map.png)
+
+A **trace** of a tap: the webhook fires, the UID resolves to a spool, and the slot is read:
+
+![Automation trace](docs/images/home-assistant/automation-trace.png)
+
+### Spoolman
+
+A spool's page — `location` is the storage bag, `slot` the dryer slot, `card_uids` the tag:
+
+![A spool's page](docs/images/spoolman/spool.png)
+
+### Fluidd
+
 Fluidd's **Spool Selection** dialog, populated straight from Spoolman:
 
 ![Fluidd Spool Selection dialog](docs/images/fluidd/spool-selection.png)
