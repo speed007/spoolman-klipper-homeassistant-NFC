@@ -1,0 +1,237 @@
+# ---------------------------------------------------------------------------
+# spool_nfc — tag tap -> Spoolman dryer slot -> per-toolhead active spool.
+#
+# Drop-in Home Assistant *package*: copy to `config/packages/spool_nfc.yaml`
+# and make sure `configuration.yaml` loads packages, e.g.
+#
+#   homeassistant:
+#     packages: !include_dir_named packages
+#
+# Before use, replace every placeholder below:
+#   - the three host addresses (Spoolman + the two printers)
+#   - the example tag UIDs in `spool_slot_tags`
+#
+# Telegram notifications are *not* configured here — Telegram bot is a UI
+# config-entry in Home Assistant 2026.x (YAML `telegram_bot:` is rejected).
+# Add it under Settings -> Devices & services -> Add integration -> Telegram
+# bot, then add your chat id as a subentry. See README.md.
+# ---------------------------------------------------------------------------
+
+input_select:
+  spool_slot:
+    name: spool_slot
+    icon: mdi:tag
+    options:
+      - None
+      - "1"
+      - "2"
+      - "3"
+      - "4"
+      - Unload
+      - SV08
+
+input_text:
+  spool_slot_tags:
+    name: spool_slot_tags
+    max: 255
+    # tag UID (no separators, upper case) -> action.
+    #   1-4 = dryer slot, 0 = unload, 5 = send to the second (single-tool) printer.
+    initial: >-
+      {"04A1B2C3D40100":1,"04A1B2C3D40200":2,"04A1B2C3D40300":3,"04A1B2C3D40400":4,"04A1B2C3D4E001":0,"04A1B2C3D4E002":5}
+
+rest_command:
+  # --- Spoolman -----------------------------------------------------------
+  spoolman_set_slot:
+    url: "http://192.168.1.50:7912/api/v1/spool/{{ spool_id | int }}"
+    method: PATCH
+    headers:
+      Content-Type: application/json
+    payload: '{"extra": {"slot": "\"{{ slot_name }}\""}}'
+
+  spoolman_clear_slot:
+    url: "http://192.168.1.50:7912/api/v1/spool/{{ spool_id | int }}"
+    method: PATCH
+    headers:
+      Content-Type: application/json
+    payload: '{"extra": {"slot": null}}'
+
+  # --- printers (Moonraker) ----------------------------------------------
+  c5pro_set_active_spool:
+    url: "http://192.168.1.51:7125/server/spoolman/spool_id"
+    method: POST
+    headers:
+      Content-Type: application/json
+    payload: '{"spool_id": {{ spool_id | int }}}'
+
+  sv08_set_active_spool:
+    url: "http://192.168.1.52:7125/server/spoolman/spool_id"
+    method: POST
+    headers:
+      Content-Type: application/json
+    payload: '{"spool_id": {{ spool_id | int }}}'
+
+sensor:
+  # The active toolhead, read from the Z-Mod Moonraker fork on the multi-tool
+  # printer. Drop this sensor (and the `c5pro_active_tool_spool` automation)
+  # if your printer doesn't expose `zmod_color.active_tool_id`.
+  - platform: rest
+    resource: http://192.168.1.51:7125/printer/objects/query?zmod_color
+    scan_interval: 3
+    sensor:
+      - name: "C5Pro Active Tool"
+        unique_id: c5pro_active_tool_id
+        value_template: "{{ value_json['result']['status']['zmod_color']['active_tool_id'] }}"
+
+automation:
+  # --- a tag was tapped ---------------------------------------------------
+  - id: nfc_spool_tag_scanned
+    alias: "NFC spool/slot tag scanned"
+    mode: single
+    triggers:
+      - trigger: webhook
+        webhook_id: nfc_spool_scanned
+        allowed_methods: [POST]
+        local_only: true
+    conditions: []
+    variables:
+      target: c5pro_set_active_spool
+      uid: "{{ (trigger.json.uid | default('')) | string | upper | replace(':','') | replace('-','') | replace(' ','') }}"
+      tag_val: "{{ ((((states('input_text.spool_slot_tags') | trim) or '{}') | from_json).get(uid, -1)) | int(-1) }}"
+      unload_armed: "{{ states('input_select.spool_slot') == 'Unload' }}"
+      sv08_armed: "{{ states('input_select.spool_slot') == 'SV08' }}"
+      armed_slot: "{{ states('input_select.spool_slot') | int(0) }}"
+      slot: "{{ (tag_val | int(0)) if (tag_val | int(0)) in [1,2,3,4] else ((armed_slot | int(0)) if (armed_slot | int(0)) in [1,2,3,4] else 0) }}"
+      loc: "{{ ['','DRYER2-R','DRYER2-L','DRYER1-R','DRYER1-L'][slot | int(0)] }}"
+      found: "{% set ns = namespace(e='') %}{% for s in states.sensor if s.entity_id.startswith('sensor.spoolman_spool_') and s.entity_id.endswith('_extra_card_uids') and s.state not in ['unknown','unavailable','none',''] %}{% if (s.state | string | upper | replace('\"','') | replace(':','') | replace('-','') | replace(' ','')) == uid %}{% set ns.e = s.entity_id %}{% endif %}{% endfor %}{{ ns.e }}"
+      spool: "{{ state_attr(found, 'spool_id') if found != '' else '' }}"
+      spool_name: "{{ states('sensor.spoolman_spool_' ~ spool ~ '_filament_name') if spool != '' else '?' }}"
+      bag: "{{ states('sensor.spoolman_spool_' ~ spool ~ '_location') if spool != '' else '?' }}"
+    actions:
+      - choose:
+          # a slot tag -> arm that slot
+          - conditions: "{{ (tag_val | int(-1)) >= 1 and (tag_val | int(-1)) <= 4 }}"
+            sequence:
+              - action: input_select.select_option
+                target: {entity_id: input_select.spool_slot}
+                data: {option: "{{ tag_val }}"}
+              - action: telegram_bot.send_message
+                data: {message: "Slot {{ tag_val }} ({{ loc }}) armed - now tap the spool's tag."}
+          # the unload tag -> arm unload
+          - conditions: "{{ (tag_val | int(-1)) == 0 }}"
+            sequence:
+              - action: input_select.select_option
+                target: {entity_id: input_select.spool_slot}
+                data: {option: "Unload"}
+              - action: telegram_bot.send_message
+                data: {message: "Unload armed - now tap the spool's tag to be told which bag it goes back to."}
+          # the second-printer tag -> arm it
+          - conditions: "{{ (tag_val | int(-1)) == 5 }}"
+            sequence:
+              - action: input_select.select_option
+                target: {entity_id: input_select.spool_slot}
+                data: {option: "SV08"}
+              - action: telegram_bot.send_message
+                data: {message: "SV08 armed - now tap the spool's tag."}
+          # spool tag + unload armed -> clear slot, tell the operator the bag
+          - conditions: "{{ uid != '' and spool != '' and unload_armed }}"
+            sequence:
+              - action: rest_command.spoolman_clear_slot
+                data: {spool_id: "{{ spool }}"}
+              - action: homeassistant.reload_config_entry
+                target: {entity_id: "{{ found }}"}
+              - action: telegram_bot.send_message
+                data: {message: "Spool {{ spool_name }} unloaded from the dryer - return it to {{ bag }}."}
+              - action: input_select.select_option
+                target: {entity_id: input_select.spool_slot}
+                data: {option: "None"}
+          # spool tag + second printer armed -> set it active there
+          - conditions: "{{ uid != '' and spool != '' and sv08_armed }}"
+            sequence:
+              - action: rest_command.sv08_set_active_spool
+                data: {spool_id: "{{ spool }}"}
+              - action: telegram_bot.send_message
+                data: {message: "Spool {{ spool_name }} set active on the SV08."}
+              - action: input_select.select_option
+                target: {entity_id: input_select.spool_slot}
+                data: {option: "None"}
+          # spool tag + slot armed -> record the dryer slot
+          - conditions: "{{ uid != '' and spool != '' and slot | int(0) > 0 }}"
+            sequence:
+              - action: rest_command.spoolman_set_slot
+                data: {spool_id: "{{ spool }}", slot_name: "{{ loc }}"}
+              - action: homeassistant.reload_config_entry
+                target: {entity_id: "{{ found }}"}
+              - action: telegram_bot.send_message
+                data: {message: "Spool {{ spool_name }} assigned to {{ loc }}."}
+          # spool tag, nothing armed -> manual active spool
+          - conditions: "{{ uid != '' and spool != '' }}"
+            sequence:
+              - action: rest_command.c5pro_set_active_spool
+                data: {spool_id: "{{ spool }}"}
+              - action: telegram_bot.send_message
+                data: {message: "Spool {{ spool_name }} set active on the C5Pro."}
+        default:
+          - action: telegram_bot.send_message
+            data: {message: "Tag {{ uid }} not recognised (not a spool, not a slot/unload/printer tag)."}
+
+  # --- follow the active toolhead -----------------------------------------
+  - id: c5pro_active_tool_spool
+    alias: "C5Pro active tool -> active spool"
+    mode: single
+    triggers:
+      - trigger: state
+        entity_id: sensor.c5pro_active_tool
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.to_state.state | int(-1) >= 0 }}"
+    variables:
+      tool: "{{ trigger.to_state.state | int }}"
+      loc: "{{ {0:'DRYER2-R',1:'DRYER2-L',2:'DRYER1-R',3:'DRYER1-L'}.get(tool, '') }}"
+      spool: >-
+        {% set ns = namespace(id='') %}
+        {% for s in states.sensor
+           if s.entity_id.startswith('sensor.spoolman_spool_')
+           and s.entity_id.endswith('_extra_slot')
+           and (s.state | string) == loc %}
+          {% set ns.id = state_attr(s.entity_id, 'spool_id') %}
+        {% endfor %}
+        {{ ns.id }}
+    actions:
+      - choose:
+          - conditions: "{{ loc != '' and spool != '' }}"
+            sequence:
+              - action: rest_command.c5pro_set_active_spool
+                data:
+                  spool_id: "{{ spool }}"
+              - action: logbook.log
+                data:
+                  name: "Spoolman NFC"
+                  message: "Tool T{{ tool + 1 }} active -> slot {{ loc }} -> spool {{ spool }} set active."
+        default:
+          - action: logbook.log
+            data:
+              name: "Spoolman NFC"
+              message: "Tool T{{ tool + 1 }} active but slot {{ loc }} has no spool."
+
+  # --- optional: an RF remote's spare buttons also arm slots --------------
+  - id: rf_spool_slot_select
+    alias: "RF remote -> arm spool slot"
+    mode: single
+    triggers:
+      - trigger: event
+        event_type: esphome.rf_code_received
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.event.data.code in ['11055385','11055386','11055387','11055388'] }}"
+    variables:
+      slot: "{{ {'11055385':'1','11055386':'2','11055387':'3','11055388':'4'}[trigger.event.data.code] }}"
+    actions:
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.spool_slot
+        data:
+          option: "{{ slot }}"
+      - action: logbook.log
+        data:
+          name: "Spoolman NFC"
+          message: "RF remote -> armed spool slot {{ slot }}."

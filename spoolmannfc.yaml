@@ -1,0 +1,80 @@
+# SpoolmanNFC — button-less NFC reader for Spoolman spool tags.
+#   ESP32-C3 + PN532 (I2C). On a tag tap it POSTs {"uid":"<uid>"} to the Home
+#   Assistant webhook named in `spool_nfc_webhook` (see secrets.yaml.example).
+#   Slot / unload / printer selection is armed from Home Assistant, not here.
+#
+# See README.md for wiring, flashing and the Home Assistant side.
+substitutions:
+  device_name: spoolmannfc
+  friendly_name: SpoolmanNFC
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  project: {name: "esp32.nfc_reader", version: "1.0.0"}
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework: {type: arduino}
+
+logger:
+api:
+  encryption:
+    key: !secret spoolmannfc_api_key
+ota:
+  - platform: esphome
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "SpoolmanNFC Fallback Hotspot"
+    password: !secret ap_password
+captive_portal:
+
+http_request:
+  useragent: esphome/spoolmannfc
+  timeout: 10s
+  verify_ssl: false
+
+i2c:
+  sda: GPIO20
+  scl: GPIO21
+  scan: true
+  frequency: 100khz
+  id: bus_a
+
+globals:
+  - id: last_uid
+    type: std::string
+    restore_value: no
+    initial_value: '""'
+
+pn532_i2c:
+  id: spool_nfc
+  i2c_id: bus_a
+  update_interval: 1s
+  on_tag:
+    then:
+      - logger.log:
+          format: "NFC tag: %s"
+          args: ['x.c_str()']
+      - if:
+          condition:
+            lambda: 'return id(last_uid) != std::string(x);'
+          then:
+            - lambda: 'id(last_uid) = x;'
+            - http_request.post:
+                url: !secret spool_nfc_webhook
+                request_headers:
+                  Content-Type: application/json
+                body: !lambda |-
+                  return std::string("{\"uid\":\"") + x + "\"}";
+  on_tag_removed:
+    then:
+      - lambda: 'id(last_uid) = "";'
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: true
+bluetooth_proxy:
+  active: true

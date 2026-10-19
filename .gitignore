@@ -1,0 +1,36 @@
+# ESPHome / build output
+.esphome/
+*.esphome/
+spoolmannfc/
+
+# Secrets — NEVER commit these. The *.example files are safe.
+secrets.yaml
+secrets.yaml.*
+!secrets.yaml.example
+secrets-add.yaml
+secrets-*.yaml
+!secrets-*.yaml.example
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Build artefacts
+*.bin
+*.elf
+*.map
+build/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
