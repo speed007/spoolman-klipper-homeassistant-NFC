@@ -59,6 +59,23 @@ Spool cards showing the Spoolman image and the loaded lane:
 
 > ⚠️ NTAG215 is tap-only. If you want a metre of range you want ISO 15693 (ICODE SLIX2 / the OpenPrintTag standard) and a PN5180 instead — that is a different project.
 
+### In pictures
+
+The finished reader:
+
+![Reader in its printed case](docs/images/hardware/reader.jpg)
+
+Inside — a PN532 **V3** on I²C alongside the ESP32-C3:
+
+![Reader internals](docs/images/hardware/reader-inside.jpg)
+
+The tag in its spool holder, and the slot tags on the dryer:
+
+![NTAG215 in its holder, fitted to a spool](docs/images/hardware/spool-tag.jpg)
+![Slot tags on the dryer — 4 / 3 / UNLOAD / 2 / 1](docs/images/hardware/dryer-slot-tags.jpg)
+
+*More: [`docs/images/`](docs/images/README.md).*
+
 ## Wiring
 
 | ESP32-C3 | PN532 | Notes |

@@ -13,9 +13,11 @@ Suggested shots (in rough priority order):
 
 | File | Shows |
 |---|---|
-| _to add_ | The ESP32-C3 + PN532 on the bench — wiring, I²C jumpers, 3V3/GND |
-| _to add_ | The finished reader in its case |
-| _to add_ | An NTAG215 in its spool holder (empty and fitted to a spool) |
+| `hardware/reader.jpg` | The finished reader in its printed case, red LED lit |
+| `hardware/reader-inside.jpg` | Inside the case — PN532 **V3** (Elechouse), ESP32-C3 and the I²C wiring |
+| `hardware/spool-tag.jpg` | An NTAG215 in its holder, fitted to a spool |
+| `hardware/dryer-loaded.jpg` | The dryer loaded with spools |
+| `hardware/dryer-slot-tags.jpg` | The slot tags on the dryer — `4` / `3` / `UNLOAD` / `2` / `1` |
 
 ## Home Assistant
 
