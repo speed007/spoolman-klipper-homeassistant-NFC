@@ -1,0 +1,32 @@
+NOTICE
+======
+
+This repository documents an NFC spool-tagging pipeline for
+[Spoolman](https://github.com/Donkie/Spoolman), a Klipper/[Moonraker](https://github.com/Arksine/moonraker)
+printer and Home Assistant. It is **not affiliated with, endorsed by, or
+supported by** any vendor or project named here — Spoolman, Klipper, Moonraker,
+Home Assistant, ESPHome, NXP (NTAG/PN532), Comgrow, Sovol or FlashForge.
+
+No vendor firmware is distributed here
+---------------------------------------
+
+This repository contains no firmware from any manufacturer. What it ships is an
+ESPHome configuration for a generic ESP32-C3 and a set of Home Assistant
+automations — all original work, provided to enable interoperability (tracking
+filament spools from Home Assistant).
+
+Third-party material not covered by the MIT licence
+---------------------------------------------------
+
+The MIT licence in `LICENSE` applies to the original code and documentation in
+this repository. Any third-party media later added under `docs/images/` — stock
+photos, vendor screenshots, product images — remains the property of its owner
+and is **not** covered by it. Note such files here when you add them.
+
+Safety
+------
+
+Modifying printers, dryers and other hardware is done entirely at your own
+risk. A filament dryer is a mains-powered appliance that generates heat. See the
+safety notes in the companion project,
+[sovol-sh03-dryer](https://github.com/speed007/sovol-sh03-dryer).

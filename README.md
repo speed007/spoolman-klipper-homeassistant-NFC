@@ -162,6 +162,8 @@ spoolmannfc.yaml      ESPHome firmware for the reader
 ha_nfc_spool.yaml     Home Assistant package (helpers, rest commands, automations)
 spoolman_tags.py      tag <-> spool CLI helper
 secrets.yaml.example  the secrets the firmware needs
+docs/images/          screenshots and video — see its README
+NOTICE                third-party material and safety notes
 ```
 
 ## Known issues
@@ -187,7 +189,8 @@ Unaffiliated with Comgrow, Sovol, FlashForge, NXP or any other manufacturer name
 
 ## Licence
 
-MIT — see [`LICENSE`](LICENSE).
+MIT — see [`LICENSE`](LICENSE). Third-party material (any media later added under
+`docs/images/`) is covered by [`NOTICE`](NOTICE), not MIT.
 
 ## Support
 
